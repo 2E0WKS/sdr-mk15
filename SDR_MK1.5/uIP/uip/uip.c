@@ -968,10 +968,26 @@ void uip_process(u8_t flag)
 		/* If IP broadcast support is configured, we check for a broadcast
 		UDP packet, which may be destined to us. */
 #if UIP_BROADCAST
+		//imported from v3.0 source tree
 		DEBUG_PRINTF("UDP IP checksum 0x%04x\r\n", uip_ipchksum());
-		if(BUF->proto == UIP_PROTO_UDP && uip_ipaddr_cmp(BUF->destipaddr, all_ones_addr) /*&& uip_ipchksum() == 0xffff*/)
+		//calculate broadcast address from IP and netmask
+		uip_ipaddr_t uip_broadcastaddr;
+		
+		uip_broadcastaddr[0]=uip_hostaddr[0]|(~uip_netmask[0]);
+		uip_broadcastaddr[1]=uip_hostaddr[1]|(~uip_netmask[1]);
+		
+		if(BUF->proto == UIP_PROTO_UDP)
 		{
-			goto udp_input;
+			if (uip_ipaddr_cmp(&BUF->destipaddr, all_ones_addr))
+			{
+				//TEMP_DEBUG("UDP Broadcast Rx (255.255.255.255)\n\r");
+				goto udp_input;
+			}
+			else if (uip_ipaddr_cmp(&BUF->destipaddr, uip_broadcastaddr))
+			{
+				//TEMP_DEBUG("UDP Broadcast Rx (broadcastaddr)\n\r");
+				goto udp_input;
+			}
 		}
 #endif /* UIP_BROADCAST */
 

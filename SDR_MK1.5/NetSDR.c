@@ -579,6 +579,27 @@ unsigned long d;
 	if(uip_len > 0)
 	{
 		UIP_LOG("network_read()=%d ETHBUF->type=0x%X\r\n", uip_len, ETHBUF->type);
+		
+		//imported from v3.0 source tree
+		/**************************************************/
+		/* One truly ugly patch .. Really a bandaid! .... */
+		/**************************************************/
+				
+		#warning "Ugly Network data patch to work us around ksz8851 offset error ...."
+				
+		if ((ETHBUF->type != htons(UIP_ETHTYPE_IP)) &&			//type field does not correspond to any packets we can handle?
+		(ETHBUF->type != htons(UIP_ETHTYPE_ARP)) &&
+		((uip_len+4) == (uip_buf[0]+(uip_buf[1]<<8))))		//first two bytes in buffer actually correspond to packet length?
+		{
+			//if we are here, we have a screwed-up packet what has ksz8851 internal frame header in some godforsaken reason
+			//at the beginning of frame. Is should have been read out as dummy bytes, but actually was not, so we have to
+			//"re-discard" it here by just shifting the buffer by four bytes.
+					
+			for (uint16_t m=0; m < uip_len; m++)
+			uip_buf[m]=uip_buf[m+4];
+		}
+				
+		/**************************************************/
 
 		if(ETHBUF->type == htons(UIP_ETHTYPE_IP))	//?? BUF is defined in uip.c, but that does not seem to be the right one!
 		{

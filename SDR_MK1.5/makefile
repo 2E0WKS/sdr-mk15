@@ -112,7 +112,7 @@ OBJDIR = .
 
 # Path to the LUFA library
 #LUFA_PATH = ../../../../../engineering/Software/LUFA111203TRUNK
-LUFA_PATH = ../../../../../engineering/Software/LUFA120219
+LUFA_PATH = ./LUFA
 
 
 # Paths of the ASF. Defining these here will permit using the AVR Software Framework folders directly without modifications

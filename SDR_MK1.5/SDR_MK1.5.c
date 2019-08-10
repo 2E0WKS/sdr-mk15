@@ -126,41 +126,46 @@ inherited works commercially.
 						-	Preliminary support for TX8M card hardware
 						-	Added ChA=I ChB=Q data mode for TX8M downconverter support
 						-	Preliminary HMATRIX memory bus arbitration code for better sample latency (InitHMatrix())
-						
-	v1.99a	22.08.2013	-	Deprecated CHMODE_16AB mode (and fixed the TX8M IQ mode sample rate bug), since this was inconsistent with current ExtIO DLL 
+
+	v1.99a	22.08.2013	-	Deprecated CHMODE_16AB mode (and fixed the TX8M IQ mode sample rate bug), since this was inconsistent with current ExtIO DLL
 							radio buttons layout. Will be brought back with updated value when AB mode is implemented somewhere.
-							
+
 	v1.99b	17.11.2013	-	Fixed SetPhase() function by restoring SI toggle. Diversity modes now work again! (have been apparently broken since v1.92 ..)
 							Also fixes the TX8M IQ data mirrors.
-							
+
 	v1.99c	11.12.2013	-	Removed redundant WriteRegister_Fast() and SetFreq_Fast() functionality
 						-	Added InitIQDataEngine(0,0, 1) to places where resyncing phase could be important during frequency tuning
-						
-	v1.99d	15.01.2014	-	TX8M SPI busmaster functionality added to NetSDR.c (not configurable yet)						
-						
+
+	v1.99d	15.01.2014	-	TX8M SPI busmaster functionality added to NetSDR.c (not configurable yet)
+
 	v1.99e	29.01.2014	-	Added console command "datamode"
 						-	Re-Enabled 24-bit network data (USE_24BITNET directive at NetSDR.c)
 						-	Experimental. RF gain control block in NetSDR.c
-						
+
 	v1.99f	30.01.2014	-	Experimental gain control revisited (added IF gain proportional to RF gain reduction)
 						-	24-bit data still enabled.
-						
+
 	v1.99g	1.02.2014	-	Adder IQ data throttling for TX8M receive (TWI 3B reg 5)
 						-	_0DB_GAIN value changed from 8 to 7
-						-	Removed ASF TWI branch from solution (was not used in make) 
+						-	Removed ASF TWI branch from solution (was not used in make)
 						-	TWI.C routines speed up
-							
-							
+
+	v1.99h	17.02.2018	-	Imported UDP local network broadcast message implementation for uIP.c (from v3.0 source tree)
+						-	Imported ksz8851 network chip data offset patch for NetSDR.c (from v3.0 source tree)
+						-	All USB endpoints are now being refreshed even if DATAMODE_NETWORK (from v3.0 source tree)
+						-	Included LUFA12019 to source tree
+
+
 	ToDo:
-	
+
 		- Re-enable 24-bit data over network
 		- Enable floating point mode for HDSDR ExtIO DLL
 		- Allow programmable AGC EXT_DELAY and AGC_COMB_ORD registers for ExtIO debugging
 		- Allow loading AGC tables and AGC_LOOP_GAIN over ExtIO (make editor on separate window!)
 		- Manual RF gain (and AGC on/off) over ExtIO and NetSDR (AGC_HOLD_IC to 0, then program gains for AGC_IC_A and AGC_IC_B, then set AGC_HOLD_IC to 1)
-		- Make phase dithering as a configurable option on screen, default on for everything else than TX8M 
+		- Make phase dithering as a configurable option on screen, default on for everything else than TX8M
 		* WriteRegister_Fast() and SetFreq_Fast() are redundant functions and have to be deprecated, since we do not access SI signal any more in any of these
-		- InitIQDataEngine(0,0,1) is at the moment syncing phase only for diversity modes and TX8M (LIBUSB_16IABQ). Must add special checkbox for 
+		- InitIQDataEngine(0,0,1) is at the moment syncing phase only for diversity modes and TX8M (LIBUSB_16IABQ). Must add special checkbox for
 		  ExtIO DLL, so "forced sync" could be used for normal LIBUSB_16AB mode
 		- rework globals to single files and include
 		- rework includes to have #ifdef _include_, so they can be recursively used
@@ -991,7 +996,7 @@ int i;
 		gpio_enable_module(ETH_SPI_GPIO_MAP, sizeof(ETH_SPI_GPIO_MAP) / sizeof(ETH_SPI_GPIO_MAP[0]));
 	}
 
-	// Set up ADC 
+	// Set up ADC
 	twi_write(0x3B, 1, 0x9);	//00001000
 								//||||||||
 								//|||||||+-----	FPATH: 0=wide bandwidth, 1=low latency digital filter (must be 1 if DRATE 100 or 101 is used)
@@ -999,12 +1004,12 @@ int i;
 								//|||||+-------	XLVDS :Always set to 0, as we use LVDS interface
 								//||||+--------	LL_CONFIG :Low Latency digital filter configuration 0=single cycle, 1=Fast Response
 								//++++---------	Reserved
-								
+
 	twi_write(0x3B, 2, 0x1);	// Data rate (do not use higher rate than 011 as the bus speed of 100MHz is too fast for xilinx at the moment)
-	
+
 	// set start pin for 24-bit SDC converters for conversion process to start (debug only)
 	//twi_write(0x3B, 3, 0x5A);		//DEBUG ONLY -- FIX HIGH-ORDER BITS FOR I AND Q DATA SPI TRANSFERS
-	
+
 	twi_write(0x3B, 0, 0x0);	// clear START bit, keep both shipselects low
 	cpu_delay_us(1000, F_CPU);
 	twi_write(0x3B, 0, 0x1);	// assert START bit to get 0->1 transition, keep both shipselects low
@@ -1215,7 +1220,7 @@ ISR(pdca_int_handler_0)
 	// When TCR reaches zero, it will be reloaded with TCRV if TCRV has a positive value. If TCRV is zero, no more transfers
 	// will be performed for the channel. When TCR is reloaded, the TCRR register is cleared, so we have to reload it inside interrupt.
 	// Same applies to marr
-	
+
 	//If TCR is zero when writing to TCRR, the TCR and MAR are automatically updated with the
 	//value written in TCRR and MARR.
 
@@ -1268,7 +1273,7 @@ void Init_SSC(uint16_t bpf, int enablerx)
 
 	// Assign GPIO to SSC.
 	gpio_enable_module(SSC_GPIO_MAP, sizeof(SSC_GPIO_MAP) / sizeof(SSC_GPIO_MAP[0]));
-	
+
 	bytesperframe=bpf;		//update global
 
 	// SSC init
@@ -1537,39 +1542,39 @@ uint16_t bpf;
 		case LIBMODE_16BMA:
 		case LIBMODE_16IAQB:
 			break;
-		
+
 		// network modes here
 		// case NETMODE_IAQB:
-		
+
 		default:
 			//do not resync for panadapters and modes where sync does not matter
-			return;	
-		}		
+			return;
+		}
 	}
 
 	if (_ifcmode)
 		ifcmode=_ifcmode;
 	else
 		ifcmode=datamode;		// assume current mode, if not specifically set!
-		
+
 	if (_bpf)
 		bpf=_bpf;
 	else
 		bpf=bytesperframe;		// assume current mode, if not specifically set!
-		
+
 
 	// disable interrupt and let the pdca controller run to the end
 	pdca_disable_interrupt_reload_counter_zero(PDCA_CHANNEL_0);
-		
+
 	while(!(pdca_channel->isr&AVR32_PDCA_TRC_MASK))					// wait until all transfers are complete for buffer
 		{}
 
 	SetSI(0);
 	Init_SSC(bpf, 0);				// init, but keep disabled
 
-	
+
 	pdca_disable(PDCA_CHANNEL_0);
-			
+
 	// PDCA options will be reloaded at ISR() anyway, but just to make a reasonable code,
 	// we will initialize here as well.
 	if (ifcmode == DATA_NETWORK)
@@ -1603,7 +1608,7 @@ uint16_t bpf;
 	}
 
 	pdca_init_channel(PDCA_CHANNEL_0, &PDCA_OPTIONS);				// init PDCA channel with options.
-		
+
 	pdca_enable_interrupt_reload_counter_zero(PDCA_CHANNEL_0);
 
 	pdca_enable(PDCA_CHANNEL_0);
@@ -1693,7 +1698,7 @@ uint32_t fadc;
 
 	Init_LM97593(samplefreq, numbits, channels, false, f_adc);
 	UpdateRegisters(1);
-	
+
 	if (oldsamplefreq != SampleRate)
 	{
 		// new sample rate requires also frequency to be recalculated
@@ -1701,7 +1706,7 @@ uint32_t fadc;
 		SetFreq(CH_B, lastfreq_B, 1, f_adc);
 	}
 
-	InitIQDataEngine((2*numbits*channels)/8, ifcmode, 0);	
+	InitIQDataEngine((2*numbits*channels)/8, ifcmode, 0);
 }
 
 void UpdateFlashCRC(void)
@@ -2032,7 +2037,7 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 					worddiff=dmaoffset-last_dmaoffset;
 				else
 					worddiff=dmaoffset+(DMAMASK+1)-last_dmaoffset;
-					
+
 #define TBLZONE (16)		//max alignment for patching header into I/Q words is 16 words
 #warning("------ ATTN! ------- Unexplained behavior below!")
 #define TBLEXTRA 8			//In whatever reason, this compensation is neccessary, otherwise the pan table header gets overwritten by sample data time to time
@@ -2074,7 +2079,7 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 						// channel A is IQ data, channel B is panscan
 						//SetFreq_Fast(CH_B, panfreq, 1, f_adc);
 						SetFreq(CH_B, panfreq, 1, f_adc);
-						
+
 					}
 					else	//LIBMODE_16BAPAN
 					{
@@ -2151,8 +2156,8 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 																						// The +16 is needed to establish a no-transfer area to patch the panscanner header into, if needed
 
 					// note, that to prevent pointer mathematics inside loop for various modes (A/B/AB), we are using pre-offset pointers here!
-					
-#warning("Non-obvious code below!")					
+
+#warning("Non-obvious code below!")
 					// Note2: Because of layout considerations, we have the polarity of the I and Q signals reversed on TX8M board.
 					// This means mathematically, that I and Q themselves are to be reversed therefore, to get the proper decoding.
 
@@ -2163,7 +2168,7 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 					Endpoint_Write_16_BE(dmabuff_w3[(roffseta+2)&DMAMASK]);
 					Endpoint_Write_16_BE(dmabuff_w3[(roffseta)&DMAMASK]);
 					Endpoint_Write_16_BE(dmabuff_w4[(roffseta+2)&DMAMASK]);
-					Endpoint_Write_16_BE(dmabuff_w4[(roffseta)&DMAMASK]);				
+					Endpoint_Write_16_BE(dmabuff_w4[(roffseta)&DMAMASK]);
 /*
 					Endpoint_Write_16_BE(dmabuff_w1[(roffseta)&DMAMASK]);			//IchA(I, rev.pol)
 					Endpoint_Write_16_BE(dmabuff_w1[(roffseta+2)&DMAMASK]);			//IchB(Q, rev.pol)
@@ -2173,7 +2178,7 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 					Endpoint_Write_16_BE(dmabuff_w3[(roffseta+2)&DMAMASK]);
 					Endpoint_Write_16_BE(dmabuff_w4[(roffseta)&DMAMASK]);
 					Endpoint_Write_16_BE(dmabuff_w4[(roffseta+2)&DMAMASK]);
-*/														
+*/
 					roffseta+=displacement;
 				}
 
@@ -2613,7 +2618,7 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 						{
 							tuningfreq=strtol(carg1, NULL, 0);
 							SetFreq(CH_A, tuningfreq, 1, f_adc);
-							
+
 							InitIQDataEngine(0,0,1);						// re-sync phase
 
 						}
@@ -2629,7 +2634,7 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 						{
 							tuningfreq=strtol(carg1, NULL, 0);
 							SetFreq(CH_B, tuningfreq, 1, f_adc);
-							
+
 							InitIQDataEngine(0,0,1);						// re-sync phase
 						}
 						else
@@ -2727,10 +2732,10 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 								break;
 						}
 						Message(1, "Sample Rate=%ld\r\n", SampleRate);
-						
+
 						Message(1, "datamode=%d:", datamode);
 						switch (datamode)
-						{				
+						{
 							case DATA_AUDIO:
 							Message(1, "DATA_AUDIO\r\n");
 							break;
@@ -3061,10 +3066,10 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 							Message(1, "Invalid command line arguments\r\n");
 					}
 					else if (strcmp(cmdname, "adcdump") == 0)
-					{					
+					{
 #if (TX8M == 1)
 						int j;
-						
+
 						select_tx8mspi(XILINX_SPICS, 0, 2000000, 0, 16);
 						Message(1, "TX8M ADC Dump from SPI Interface:\r\n");
 						Message(1, "=====================================\r\n");
@@ -3075,7 +3080,7 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 							Message(1, "- ");
 							for (j=0; j<8; j++)
 								Message(1, "%04.4X ", spi_read16());
-							
+
 							Message(1, "\r\n");
 						}
 						Message(1, "=====================================\r\n");
@@ -3091,7 +3096,7 @@ Message(1, "TX8M functionality was disabled during firmware compile!\r\n");
 					uint16_t rdstat;
 					uint8_t adcbytes[6];
 					uint8_t efound=0;
-												
+
 						Message(1, "SPI Memory Identification:\r\n");
 						for (i=0; i<20; i++)
 							Message(1, "0x%02.2X ", spimemid[i]);
@@ -3232,7 +3237,7 @@ Message(1, "TX8M functionality was disabled during firmware compile!\r\n");
 						{
 							tuningfreq=strtol(carg1, NULL, 0);
 							SetFreq(CH_A, tuningfreq, 1, f_adc);
-							
+
 							InitIQDataEngine(0,0,1);						// re-sync phase
 						}
 					}
@@ -3242,7 +3247,7 @@ Message(1, "TX8M functionality was disabled during firmware compile!\r\n");
 						{
 							tuningfreq=strtol(carg1, NULL, 0);
 							SetFreq(CH_B, tuningfreq, 1, f_adc);
-							
+
 							InitIQDataEngine(0,0,1);						// re-sync phase
 						}
 					}
@@ -3685,6 +3690,7 @@ Message(1, "TX8M functionality was disabled during firmware compile!\r\n");
 
 		switch (datamode)
 		{
+			/*
 			case DATA_NETWORK:
 				CDC_Device_USBTask(&VirtualSerial1_CDC_Interface);
 				break;
@@ -3698,6 +3704,7 @@ Message(1, "TX8M functionality was disabled during firmware compile!\r\n");
 				break;
 
 			case DATA_AUDIO:
+			*/
 			default:
 				CDC_Device_USBTask(&VirtualSerial1_CDC_Interface);
 				CDC_Device_USBTask(&VirtualSerial2_CDC_Interface);
@@ -3826,7 +3833,7 @@ void EVENT_USB_Device_ControlRequest(void)
 						// in any case, set channel A and channel B to their respective RF frontends first
 						WriteRegister(19, 0x4);
 						panadapter = 0;
-						
+
 						libmode = USB_ControlRequest.wValue;
 
 						switch (libmode)
@@ -3930,7 +3937,7 @@ void EVENT_USB_Device_ControlRequest(void)
 									dmabuff_w2=&dmabuff_1[4];		//IA
 									dmabuff_w3=&dmabuff_1[8];		//IA
 									dmabuff_w4=&dmabuff_1[12];		//IA
-									
+
 									// have to override phase to minimize TX8M aliases, as we have slight channel skew between channels
 									SetPhase(CH_A, 70);				//increments by 0.00549 degrees.
 									SetPhase(CH_B, 0);
